@@ -1,0 +1,15 @@
+import PrimaryHeadline from "../global/primary-headline";
+import { TeamMembersCarousel } from "../shared/TeamMembersCarousel";
+
+const TeamMembers = () => {
+  return (
+    <div className="bg-background">
+      <div className="container pb-40 pt-20 lg:pb-52 lg:pt-28">
+        <PrimaryHeadline text="Nosso Time" additionalClass="secondary-headline" />
+        <TeamMembersCarousel textColor="text-white" />
+      </div>
+    </div>
+  );
+};
+
+export default TeamMembers;
