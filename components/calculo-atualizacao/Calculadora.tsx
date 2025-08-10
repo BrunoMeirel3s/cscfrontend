@@ -6,7 +6,7 @@ import { DadosCalculoRevezamento, DialogBodyProps } from "@/types";
 import * as yup from "yup";
 import * as XLSX from "xlsx";
 import { v4 as uuidv4 } from "uuid";
-import { format, toDate } from "date-fns";
+import { format, toDate, parse, isValid } from "date-fns";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { InputMask } from "primereact/inputmask";
@@ -264,6 +264,14 @@ const Calculadora = () => {
     return new Date(year, month - 1, day); // month is 0-based
   };
 
+  function parseLocalDateFlexible(dateStr: string) {
+    let parsed = parse(dateStr, "yyyy-MM-dd", new Date());
+    if (!isValid(parsed)) {
+      parsed = parse(dateStr, "dd/MM/yyyy", new Date());
+    }
+    return parsed;
+  }
+
   const roundNumber = (value: number, decimals: number = 2): number => {
     return parseFloat(value.toFixed(decimals));
   };
@@ -325,10 +333,9 @@ const Calculadora = () => {
           !indiceAtualizacaoMontaria || indiceAtualizacaoMontaria === ""
             ? "Índice de atualização monetária é obrigatório."
             : "",
-        dataFinalCalculoAtualizacao:
-          !dataFinalCalculoAtualizacao
-            ? "Data final de cálculo de atualização é obrigatória."
-            : "",
+        dataFinalCalculoAtualizacao: !dataFinalCalculoAtualizacao
+          ? "Data final de cálculo de atualização é obrigatória."
+          : "",
       });
       return;
     }
@@ -428,30 +435,29 @@ const Calculadora = () => {
       const dataInicialIndice = dataInicialCalculoAtualizacao
         ? format(parseLocalDate(dataInicialCalculoAtualizacao), "dd/MM/yyyy")
         : null;
-      const dataFinalIndice = dataFinalCalculoAtualizacao
-        ? format(parseLocalDate(dataFinalCalculoAtualizacao), "dd/MM/yyyy")
-        : null;
-      const dataAtualLoop = format(
-        toDate(current).toLocaleDateString(),
+
+      const dataFinalIndice = format(
+        parseLocalDate(dataFinalCalculoAtualizacao),
         "dd/MM/yyyy"
       );
-      const dataAtual = format(new Date(), "dd/MM/yyyy");
+
+      const dataAtualLoop = format(current, "dd/MM/yyyy");
 
       const valorAtualizado =
         indice == "ipcae"
           ? corrigirValorComIPCAE(
               dataInicialIndice ?? dataAtualLoop,
-              dataFinalIndice ?? dataAtual,
+              dataFinalIndice,
               valorAdicionalNoturno
             )
           : corrigirValorComINPC(
               dataInicialIndice ?? dataAtualLoop,
-              dataFinalIndice ?? dataAtual,
+              dataFinalIndice,
               valorAdicionalNoturno
             );
       const valorJurosCompensatorios = aplicarJurosCompensatorios(
         dataInicialIndice ?? dataAtualLoop,
-        dataFinalIndice ?? dataAtual,
+        dataFinalIndice,
         valorAdicionalNoturno
       );
       const valorTotal = roundNumber(
@@ -527,11 +533,14 @@ const Calculadora = () => {
                   "dd/MM/yyyy"
                 )
               : null;
+
             const dataAtualLoop = format(
               toDate(novoRegistro.dataMes).toLocaleDateString(),
               "dd/MM/yyyy"
             );
+
             const dataAtual = format(new Date(), "dd/MM/yyyy");
+
             const valorAtualizado =
               indice == "ipcae"
                 ? corrigirValorComIPCAE(
@@ -579,34 +588,31 @@ const Calculadora = () => {
                   "dd/MM/yyyy"
                 )
               : null;
-            const dataFinalIndice = dataFinalCalculoAtualizacao
-              ? format(
-                  parseLocalDate(dataFinalCalculoAtualizacao),
-                  "dd/MM/yyyy"
-                )
-              : null;
-            const dataAtualLoop = format(
-              toDate(novoRegistro.dataMes).toLocaleDateString(),
+            const dataFinalIndice = format(
+              parseLocalDate(dataFinalCalculoAtualizacao),
               "dd/MM/yyyy"
             );
-            const dataAtual = format(new Date(), "dd/MM/yyyy");
+            const dataAtualLoop = format(
+              parseLocalDateFlexible(novoRegistro.dataMes),
+              "dd/MM/yyyy"
+            );
             const valorAtualizado =
               indice == "ipcae"
                 ? corrigirValorComIPCAE(
                     dataInicialIndice ?? dataAtualLoop,
-                    dataFinalIndice ?? dataAtual,
+                    dataFinalIndice,
                     novoRegistro.valorAdicionalNoturno
                   )
                 : corrigirValorComINPC(
                     dataInicialIndice ?? dataAtualLoop,
-                    dataFinalIndice ?? dataAtual,
+                    dataFinalIndice,
                     novoRegistro.valorAdicionalNoturno
                   );
             novoRegistro.valorAdicionalNoturnoAtualizado = valorAtualizado;
 
             const valorJurosCompensatorios = aplicarJurosCompensatorios(
               dataInicialIndice ?? dataAtualLoop,
-              dataFinalIndice ?? dataAtual,
+              dataFinalIndice,
               valorAtualizado
             );
             const valorTotal = roundNumber(
@@ -783,7 +789,7 @@ const Calculadora = () => {
   };
 
   const ipcaEMensal: Record<string, number> = {
-    "02/1992": 0.2610,
+    "02/1992": 0.261,
     "03/1992": 0.2203,
     "04/1992": 0.1983,
     "05/1992": 0.2345,
@@ -792,8 +798,8 @@ const Calculadora = () => {
     "08/1992": 0.2314,
     "09/1992": 0.2333,
     "10/1992": 0.2548,
-    "11/1992": 0.2370,
-    "12/1992": 0.2349,//
+    "11/1992": 0.237,
+    "12/1992": 0.2349, //
     "01/1993": 0.2947,
     "02/1993": 0.2672,
     "03/1993": 0.2596,
@@ -804,20 +810,20 @@ const Calculadora = () => {
     "08/1993": 0.3199,
     "09/1993": 0.3438,
     "10/1993": 0.3517,
-    "11/1993": 0.3390,
-    "12/1993": 0.3669,//
+    "11/1993": 0.339,
+    "12/1993": 0.3669, //
     "01/1994": 0.3917,
-    "02/1994": 0.3970,
+    "02/1994": 0.397,
     "03/1994": 0.4363,
     "04/1994": 0.4125,
     "05/1994": 0.4421,
     "06/1994": 0.4465,
     "07/1994": 0.0521,
-    "08/1994": 0.0500,
+    "08/1994": 0.05,
     "09/1994": 0.0163,
-    "10/1994": 0.0190,
+    "10/1994": 0.019,
     "11/1994": 0.0295,
-    "12/1994": 0.0225,//
+    "12/1994": 0.0225, //
     "01/1995": 0.0178,
     "02/1995": 0.0122,
     "03/1995": 0.0128,
@@ -829,31 +835,31 @@ const Calculadora = () => {
     "09/1995": 0.0097,
     "10/1995": 0.0134,
     "11/1995": 0.0146,
-    "12/1995": 0.0136,//
+    "12/1995": 0.0136, //
     "01/1996": 0.0163,
-    "02/1996": 0.0120,
+    "02/1996": 0.012,
     "03/1996": 0.0062,
-    "04/1996": 0.0070,
+    "04/1996": 0.007,
     "05/1996": 0.0132,
     "06/1996": 0.0111,
     "07/1996": 0.0137,
-    "08/1996": 0.0070,
+    "08/1996": 0.007,
     "09/1996": 0.0011,
     "10/1996": 0.0014,
     "11/1996": 0.0041,
-    "12/1996": 0.0020,//
+    "12/1996": 0.002, //
     "01/1997": 0.0113,
     "02/1997": 0.0071,
     "03/1997": 0.0059,
     "04/1997": 0.0068,
-    "05/1997": 0.0050,
+    "05/1997": 0.005,
     "06/1997": 0.0055,
     "07/1997": 0.0031,
     "08/1997": 0.0017,
     "09/1997": -0.0005,
     "10/1997": 0.0025,
     "11/1997": 0.0007,
-    "12/1997": 0.0049,//
+    "12/1997": 0.0049, //
     "01/1998": 0.0054,
     "02/1998": 0.0064,
     "03/1998": 0.0039,
@@ -865,7 +871,7 @@ const Calculadora = () => {
     "09/1998": -0.0044,
     "10/1998": 0.0001,
     "11/1998": -0.0011,
-    "12/1998": 0.0013,//
+    "12/1998": 0.0013, //
     "01/1999": 0.0068,
     "02/1999": 0.0064,
     "03/1999": 0.0122,
@@ -875,9 +881,9 @@ const Calculadora = () => {
     "07/1999": 0.0079,
     "08/1999": 0.0081,
     "09/1999": 0.0047,
-    "10/1999": 0.0080,
+    "10/1999": 0.008,
     "11/1999": 0.0099,
-    "12/1999": 0.0091,//
+    "12/1999": 0.0091, //
     "01/2000": 0.0065,
     "02/2000": 0.0034,
     "03/2000": 0.0009,
@@ -889,11 +895,11 @@ const Calculadora = () => {
     "09/2000": 0.0045,
     "10/2000": 0.0018,
     "11/2000": 0.0017,
-    "12/2000": 0.0060,//
+    "12/2000": 0.006, //
     "01/2001": 0.0063,
-    "02/2001": 0.0050,
+    "02/2001": 0.005,
     "03/2001": 0.0036,
-    "04/2001": 0.0050,
+    "04/2001": 0.005,
     "05/2001": 0.0049,
     "06/2001": 0.0038,
     "07/2001": 0.0094,
@@ -901,19 +907,19 @@ const Calculadora = () => {
     "09/2001": 0.0038,
     "10/2001": 0.0037,
     "11/2001": 0.0099,
-    "12/2001": 0.0055,//
+    "12/2001": 0.0055, //
     "01/2002": 0.0062,
     "02/2002": 0.0044,
-    "03/2002": 0.0040,
+    "03/2002": 0.004,
     "04/2002": 0.0078,
     "05/2002": 0.0042,
     "06/2002": 0.0033,
     "07/2002": 0.0077,
-    "08/2002": 0.0100,
+    "08/2002": 0.01,
     "09/2002": 0.0062,
-    "10/2002": 0.0090,
+    "10/2002": 0.009,
     "11/2002": 0.0208,
-    "12/2002": 0.0305,//
+    "12/2002": 0.0305, //
     "01/2003": 0.0198,
     "02/2003": 0.0219,
     "03/2003": 0.0114,
@@ -925,10 +931,10 @@ const Calculadora = () => {
     "09/2003": 0.0057,
     "10/2003": 0.0066,
     "11/2003": 0.0017,
-    "12/2003": 0.0046,//
+    "12/2003": 0.0046, //
     "01/2004": 0.0068,
-    "02/2004": 0.0090,
-    "03/2004": 0.0040,
+    "02/2004": 0.009,
+    "03/2004": 0.004,
     "04/2004": 0.0021,
     "05/2004": 0.0054,
     "06/2004": 0.0056,
@@ -937,7 +943,7 @@ const Calculadora = () => {
     "09/2004": 0.0049,
     "10/2004": 0.0032,
     "11/2004": 0.0063,
-    "12/2004": 0.0084,//
+    "12/2004": 0.0084, //
     "01/2005": 0.0068,
     "02/2005": 0.0074,
     "03/2005": 0.0035,
@@ -949,7 +955,7 @@ const Calculadora = () => {
     "09/2005": 0.0016,
     "10/2005": 0.0056,
     "11/2005": 0.0078,
-    "12/2005": 0.0038,//
+    "12/2005": 0.0038, //
     "01/2006": 0.0051,
     "02/2006": 0.0052,
     "03/2006": 0.0037,
@@ -961,7 +967,7 @@ const Calculadora = () => {
     "09/2006": 0.0005,
     "10/2006": 0.0029,
     "11/2006": 0.0037,
-    "12/2006": 0.0035,//
+    "12/2006": 0.0035, //
     "01/2007": 0.0052,
     "02/2007": 0.0046,
     "03/2007": 0.0041,
@@ -973,20 +979,20 @@ const Calculadora = () => {
     "09/2007": 0.0029,
     "10/2007": 0.0024,
     "11/2007": 0.0023,
-    "12/2007": 0.0070,//
-    "01/2008": 0.0070,
+    "12/2007": 0.007, //
+    "01/2008": 0.007,
     "02/2008": 0.0064,
     "03/2008": 0.0023,
     "04/2008": 0.0059,
     "05/2008": 0.0056,
-    "06/2008": 0.0090,
+    "06/2008": 0.009,
     "07/2008": 0.0063,
     "08/2008": 0.0035,
     "09/2008": 0.0026,
-    "10/2008": 0.0030,
+    "10/2008": 0.003,
     "11/2008": 0.0049,
-    "12/2008": 0.0029,//
-    "01/2009": 0.0040,
+    "12/2008": 0.0029, //
+    "01/2009": 0.004,
     "02/2009": 0.0063,
     "03/2009": 0.0011,
     "04/2009": 0.0036,
@@ -997,7 +1003,7 @@ const Calculadora = () => {
     "09/2009": 0.0019,
     "10/2009": 0.0018,
     "11/2009": 0.0044,
-    "12/2009": 0.0038,//
+    "12/2009": 0.0038, //
     "01/2010": 0.0052,
     "02/2010": 0.0094,
     "03/2010": 0.0055,
@@ -1009,19 +1015,19 @@ const Calculadora = () => {
     "09/2010": 0.0031,
     "10/2010": 0.0062,
     "11/2010": 0.0086,
-    "12/2010": 0.0069,//
+    "12/2010": 0.0069, //
     "01/2011": 0.0076,
     "02/2011": 0.0097,
-    "03/2011": 0.0060,
+    "03/2011": 0.006,
     "04/2011": 0.0077,
-    "05/2011": 0.0070,
+    "05/2011": 0.007,
     "06/2011": 0.0023,
-    "07/2011": 0.0010,
+    "07/2011": 0.001,
     "08/2011": 0.0027,
     "09/2011": 0.0053,
     "10/2011": 0.0042,
     "11/2011": 0.0046,
-    "12/2011": 0.0056,//
+    "12/2011": 0.0056, //
     "01/2012": 0.0065,
     "02/2012": 0.0053,
     "03/2012": 0.0025,
@@ -1033,7 +1039,7 @@ const Calculadora = () => {
     "09/2012": 0.0048,
     "10/2012": 0.0065,
     "11/2012": 0.0054,
-    "12/2012": 0.0069,//
+    "12/2012": 0.0069, //
     "01/2013": 0.0088,
     "02/2013": 0.0068,
     "03/2013": 0.0049,
@@ -1045,9 +1051,9 @@ const Calculadora = () => {
     "09/2013": 0.0027,
     "10/2013": 0.0048,
     "11/2013": 0.0057,
-    "12/2013": 0.0075,//
+    "12/2013": 0.0075, //
     "01/2014": 0.0067,
-    "02/2014": 0.0070,
+    "02/2014": 0.007,
     "03/2014": 0.0073,
     "04/2014": 0.0078,
     "05/2014": 0.0058,
@@ -1075,7 +1081,7 @@ const Calculadora = () => {
     "03/2016": 0.0043,
     "04/2016": 0.0051,
     "05/2016": 0.0086,
-    "06/2016": 0.0040,
+    "06/2016": 0.004,
     "07/2016": 0.0054,
     "08/2016": 0.0045,
     "09/2016": 0.0023,
@@ -1106,7 +1112,7 @@ const Calculadora = () => {
     "10/2018": 0.0058,
     "11/2018": 0.0019,
     "12/2018": -0.0016,
-    "01/2019": 0.0030,
+    "01/2019": 0.003,
     "02/2019": 0.0034,
     "03/2019": 0.0054,
     "04/2019": 0.0072,
@@ -1124,7 +1130,7 @@ const Calculadora = () => {
     "04/2020": -0.0001,
     "05/2020": -0.0059,
     "06/2020": 0.0002,
-    "07/2020": 0.0030,
+    "07/2020": 0.003,
     "08/2020": 0.0023,
     "09/2020": 0.0045,
     "10/2020": 0.0094,
@@ -1133,13 +1139,13 @@ const Calculadora = () => {
     "01/2021": 0.0078,
     "02/2021": 0.0048,
     "03/2021": 0.0093,
-    "04/2021": 0.0060,
+    "04/2021": 0.006,
     "05/2021": 0.0044,
     "06/2021": 0.0083,
     "07/2021": 0.0072,
     "08/2021": 0.0089,
     "09/2021": 0.0114,
-    "10/2021": 0.0120,
+    "10/2021": 0.012,
     "11/2021": 0.0117,
     "12/2021": 0.0078,
     "01/2022": 0.0058,
@@ -1165,14 +1171,14 @@ const Calculadora = () => {
     "09/2023": 0.0035,
     "10/2023": 0.0021,
     "11/2023": 0.0033,
-    "12/2023": 0.0040,
+    "12/2023": 0.004,
     "01/2024": 0.0031,
     "02/2024": 0.0078,
     "03/2024": 0.0036,
     "04/2024": 0.0021,
     "05/2024": 0.0044,
     "06/2024": 0.0039,
-    "07/2024": 0.0030,
+    "07/2024": 0.003,
     "08/2024": 0.0019,
     "09/2024": 0.0013,
     "10/2024": 0.0054,
