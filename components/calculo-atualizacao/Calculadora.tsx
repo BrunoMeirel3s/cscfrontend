@@ -6,7 +6,7 @@ import { DadosCalculoRevezamento, DialogBodyProps } from "@/types";
 import * as yup from "yup";
 import * as XLSX from "xlsx";
 import { v4 as uuidv4 } from "uuid";
-import { format, toDate, parse, isValid } from "date-fns";
+import { format, toDate } from "date-fns";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { InputMask } from "primereact/inputmask";
@@ -264,14 +264,6 @@ const Calculadora = () => {
     return new Date(year, month - 1, day); // month is 0-based
   };
 
-  function parseLocalDateFlexible(dateStr: string) {
-    let parsed = parse(dateStr, "yyyy-MM-dd", new Date());
-    if (!isValid(parsed)) {
-      parsed = parse(dateStr, "dd/MM/yyyy", new Date());
-    }
-    return parsed;
-  }
-
   const roundNumber = (value: number, decimals: number = 2): number => {
     return parseFloat(value.toFixed(decimals));
   };
@@ -435,29 +427,42 @@ const Calculadora = () => {
       const dataInicialIndice = dataInicialCalculoAtualizacao
         ? format(parseLocalDate(dataInicialCalculoAtualizacao), "dd/MM/yyyy")
         : null;
-
-      const dataFinalIndice = format(
-        parseLocalDate(dataFinalCalculoAtualizacao),
+      const dataFinalIndice = dataFinalCalculoAtualizacao
+        ? format(parseLocalDate(dataFinalCalculoAtualizacao), "dd/MM/yyyy")
+        : null;
+      const dataAtualLoop = format(
+        toDate(current).toLocaleDateString(),
         "dd/MM/yyyy"
       );
+      const dataAtual = format(new Date(), "dd/MM/yyyy");
 
-      const dataAtualLoop = format(current, "dd/MM/yyyy");
+      let valorAtualizado;
 
-      const valorAtualizado =
-        indice == "ipcae"
-          ? corrigirValorComIPCAE(
-              dataInicialIndice ?? dataAtualLoop,
-              dataFinalIndice,
-              valorAdicionalNoturno
-            )
-          : corrigirValorComINPC(
-              dataInicialIndice ?? dataAtualLoop,
-              dataFinalIndice,
-              valorAdicionalNoturno
-            );
+      console.log(indice);
+
+      if (indice == "ipcae") {
+        valorAtualizado = corrigirValorComIPCAE(
+          dataInicialIndice ?? dataAtualLoop,
+          dataFinalIndice ?? dataAtual,
+          valorAdicionalNoturno
+        );
+      } else if (indice == "inpc") {
+        valorAtualizado = corrigirValorComINPC(
+          dataInicialIndice ?? dataAtualLoop,
+          dataFinalIndice ?? dataAtual,
+          valorAdicionalNoturno
+        );
+      } else {
+        valorAtualizado = corrigirValorComIPCAEeSelic(
+          dataInicialIndice ?? dataAtualLoop,
+          dataFinalIndice ?? dataAtual,
+          valorAdicionalNoturno
+        );
+      }
+
       const valorJurosCompensatorios = aplicarJurosCompensatorios(
         dataInicialIndice ?? dataAtualLoop,
-        dataFinalIndice,
+        dataFinalIndice ?? dataAtual,
         valorAdicionalNoturno
       );
       const valorTotal = roundNumber(
@@ -533,26 +538,33 @@ const Calculadora = () => {
                   "dd/MM/yyyy"
                 )
               : null;
-
             const dataAtualLoop = format(
               toDate(novoRegistro.dataMes).toLocaleDateString(),
               "dd/MM/yyyy"
             );
-
             const dataAtual = format(new Date(), "dd/MM/yyyy");
 
-            const valorAtualizado =
-              indice == "ipcae"
-                ? corrigirValorComIPCAE(
-                    dataInicialIndice ?? dataAtualLoop,
-                    dataFinalIndice ?? dataAtual,
-                    novoRegistro.valorAdicionalNoturno
-                  )
-                : corrigirValorComINPC(
-                    dataInicialIndice ?? dataAtualLoop,
-                    dataFinalIndice ?? dataAtual,
-                    novoRegistro.valorAdicionalNoturno
-                  );
+            let valorAtualizado;
+
+            if (indice == "ipcae") {
+              valorAtualizado = corrigirValorComIPCAE(
+                dataInicialIndice ?? dataAtualLoop,
+                dataFinalIndice ?? dataAtual,
+                novoRegistro.valorAdicionalNoturno
+              );
+            } else if (indice == "inpc") {
+              valorAtualizado = corrigirValorComINPC(
+                dataInicialIndice ?? dataAtualLoop,
+                dataFinalIndice ?? dataAtual,
+                novoRegistro.valorAdicionalNoturno
+              );
+            } else {
+              valorAtualizado = corrigirValorComIPCAEeSelic(
+                dataInicialIndice ?? dataAtualLoop,
+                dataFinalIndice ?? dataAtual,
+                novoRegistro.valorAdicionalNoturno
+              );
+            }
             novoRegistro.valorAdicionalNoturnoAtualizado = valorAtualizado;
             const valorJurosCompensatorios = aplicarJurosCompensatorios(
               dataInicialIndice ?? dataAtualLoop,
@@ -588,31 +600,44 @@ const Calculadora = () => {
                   "dd/MM/yyyy"
                 )
               : null;
-            const dataFinalIndice = format(
-              parseLocalDate(dataFinalCalculoAtualizacao),
-              "dd/MM/yyyy"
-            );
+            const dataFinalIndice = dataFinalCalculoAtualizacao
+              ? format(
+                  parseLocalDate(dataFinalCalculoAtualizacao),
+                  "dd/MM/yyyy"
+                )
+              : null;
             const dataAtualLoop = format(
-              parseLocalDateFlexible(novoRegistro.dataMes),
+              toDate(novoRegistro.dataMes).toLocaleDateString(),
               "dd/MM/yyyy"
             );
-            const valorAtualizado =
-              indice == "ipcae"
-                ? corrigirValorComIPCAE(
-                    dataInicialIndice ?? dataAtualLoop,
-                    dataFinalIndice,
-                    novoRegistro.valorAdicionalNoturno
-                  )
-                : corrigirValorComINPC(
-                    dataInicialIndice ?? dataAtualLoop,
-                    dataFinalIndice,
-                    novoRegistro.valorAdicionalNoturno
-                  );
+            const dataAtual = format(new Date(), "dd/MM/yyyy");
+
+            let valorAtualizado;
+
+            if (indice == "ipcae") {
+              valorAtualizado = corrigirValorComIPCAE(
+                dataInicialIndice ?? dataAtualLoop,
+                dataFinalIndice ?? dataAtual,
+                novoRegistro.valorAdicionalNoturno
+              );
+            } else if (indice == "inpc") {
+              valorAtualizado = corrigirValorComINPC(
+                dataInicialIndice ?? dataAtualLoop,
+                dataFinalIndice ?? dataAtual,
+                novoRegistro.valorAdicionalNoturno
+              );
+            } else {
+              valorAtualizado = corrigirValorComIPCAEeSelic(
+                dataInicialIndice ?? dataAtualLoop,
+                dataFinalIndice ?? dataAtual,
+                novoRegistro.valorAdicionalNoturno
+              );
+            }
             novoRegistro.valorAdicionalNoturnoAtualizado = valorAtualizado;
 
             const valorJurosCompensatorios = aplicarJurosCompensatorios(
               dataInicialIndice ?? dataAtualLoop,
-              dataFinalIndice,
+              dataFinalIndice ?? dataAtual,
               valorAtualizado
             );
             const valorTotal = roundNumber(
@@ -1193,6 +1218,517 @@ const Calculadora = () => {
     "07/2025": 0.0033,
   };
 
+  const selicMensal: Record<string, number> = {
+    "07/1986": 0.0195,
+    "08/1986": 0.0257,
+    "09/1986": 0.0294,
+    "10/1986": 0.0196,
+    "11/1986": 0.0237,
+    "12/1986": 0.0547,
+
+    "01/1987": 0.11,
+    "02/1987": 0.1961,
+    "03/1987": 0.1195,
+    "04/1987": 0.153,
+    "05/1987": 0.2463,
+    "06/1987": 0.1802,
+    "07/1987": 0.0891,
+    "08/1987": 0.0809,
+    "09/1987": 0.0799,
+    "10/1987": 0.0945,
+    "11/1987": 0.1292,
+    "12/1987": 0.1438,
+
+    "01/1988": 0.1678,
+    "02/1988": 0.1835,
+    "03/1988": 0.1659,
+    "04/1988": 0.2025,
+    "05/1988": 0.1865,
+    "06/1988": 0.2017,
+    "07/1988": 0.2469,
+    "08/1988": 0.2263,
+    "09/1988": 0.2625,
+    "10/1988": 0.2979,
+    "11/1988": 0.2841,
+    "12/1988": 0.3024,
+
+    "01/1989": 0.2297,
+    "02/1989": 0.1895,
+    "03/1989": 0.2041,
+    "04/1989": 0.1152,
+    "05/1989": 0.1143,
+    "06/1989": 0.2729,
+    "07/1989": 0.3315,
+    "08/1989": 0.3549,
+    "09/1989": 0.3858,
+    "10/1989": 0.477,
+    "11/1989": 0.4841,
+    "12/1989": 0.6421,
+
+    "01/1990": 0.676,
+    "02/1990": 0.8204,
+    "03/1990": 0.3676,
+    "04/1990": 0.0423,
+    "05/1990": 0.0569,
+    "06/1990": 0.0873,
+    "07/1990": 0.1379,
+    "08/1990": 0.1153,
+    "09/1990": 0.1521,
+    "10/1990": 0.1649,
+    "11/1990": 0.1983,
+    "12/1990": 0.2286,
+
+    "01/1991": 0.2102,
+    "02/1991": 0.0685,
+    "03/1991": 0.0899,
+    "04/1991": 0.0967,
+    "05/1991": 0.0956,
+    "06/1991": 0.1032,
+    "07/1991": 0.1239,
+    "08/1991": 0.1575,
+    "09/1991": 0.1978,
+    "10/1991": 0.2595,
+    "11/1991": 0.3243,
+    "12/1991": 0.3117,
+
+    "01/1992": 0.2906,
+    "02/1992": 0.2876,
+    "03/1992": 0.2686,
+    "04/1992": 0.2392,
+    "05/1992": 0.23,
+    "06/1992": 0.2428,
+    "07/1992": 0.2621,
+    "08/1992": 0.2565,
+    "09/1992": 0.2766,
+    "10/1992": 0.2818,
+    "11/1992": 0.264,
+    "12/1992": 0.2592,
+
+    "01/1993": 0.2852,
+    "02/1993": 0.289,
+    "03/1993": 0.2836,
+    "04/1993": 0.3053,
+    "05/1993": 0.309,
+    "06/1993": 0.3191,
+    "07/1993": 0.3273,
+    "08/1993": 0.3464,
+    "09/1993": 0.3723,
+    "10/1993": 0.384,
+    "11/1993": 0.3838,
+    "12/1993": 0.4038,
+
+    "01/1994": 0.4276,
+    "02/1994": 0.4199,
+    "03/1994": 0.4642,
+    "04/1994": 0.4649,
+    "05/1994": 0.4795,
+    "06/1994": 0.5062,
+    "07/1994": 0.0687,
+    "08/1994": 0.0417,
+    "09/1994": 0.0383,
+    "10/1994": 0.0362,
+    "11/1994": 0.0407,
+    "12/1994": 0.038,
+
+    "01/1995": 0.0337,
+    "02/1995": 0.0325,
+    "03/1995": 0.0426,
+    "04/1995": 0.0426,
+    "05/1995": 0.0425,
+    "06/1995": 0.0404,
+    "07/1995": 0.0402,
+    "08/1995": 0.0384,
+    "09/1995": 0.0332,
+    "10/1995": 0.0309,
+    "11/1995": 0.0288,
+    "12/1995": 0.0278,
+
+    "01/1996": 0.0258,
+    "02/1996": 0.0235,
+    "03/1996": 0.0222,
+    "04/1996": 0.0207,
+    "05/1996": 0.0201,
+    "06/1996": 0.0198,
+    "07/1996": 0.0193,
+    "08/1996": 0.0197,
+    "09/1996": 0.019,
+    "10/1996": 0.0186,
+    "11/1996": 0.018,
+    "12/1996": 0.018,
+
+    "01/1997": 0.0173,
+    "02/1997": 0.0167,
+    "03/1997": 0.0164,
+    "04/1997": 0.0166,
+    "05/1997": 0.0158,
+    "06/1997": 0.0161,
+    "07/1997": 0.016,
+    "08/1997": 0.0159,
+    "09/1997": 0.0159,
+    "10/1997": 0.0167,
+    "11/1997": 0.0304,
+    "12/1997": 0.0297,
+
+    "01/1998": 0.0267,
+    "02/1998": 0.0213,
+    "03/1998": 0.022,
+    "04/1998": 0.0171,
+    "05/1998": 0.0163,
+    "06/1998": 0.016,
+    "07/1998": 0.017,
+    "08/1998": 0.0148,
+    "09/1998": 0.0249,
+    "10/1998": 0.0294,
+    "11/1998": 0.0263,
+    "12/1998": 0.024,
+
+    "01/1999": 0.0218,
+    "02/1999": 0.0238,
+    "03/1999": 0.0333,
+    "04/1999": 0.0235,
+    "05/1999": 0.0202,
+    "06/1999": 0.0167,
+    "07/1999": 0.0166,
+    "08/1999": 0.0157,
+    "09/1999": 0.0149,
+    "10/1999": 0.0138,
+    "11/1999": 0.0139,
+    "12/1999": 0.016,
+
+    "01/2000": 0.0146,
+    "02/2000": 0.0145,
+    "03/2000": 0.0145,
+    "04/2000": 0.013,
+    "05/2000": 0.0149,
+    "06/2000": 0.0139,
+    "07/2000": 0.0131,
+    "08/2000": 0.0141,
+    "09/2000": 0.0122,
+    "10/2000": 0.0129,
+    "11/2000": 0.0122,
+    "12/2000": 0.012,
+
+    "01/2001": 0.0127,
+    "02/2001": 0.0102,
+    "03/2001": 0.0126,
+    "04/2001": 0.0119,
+    "05/2001": 0.0134,
+    "06/2001": 0.0127,
+    "07/2001": 0.015,
+    "08/2001": 0.016,
+    "09/2001": 0.0132,
+    "10/2001": 0.0153,
+    "11/2001": 0.0139,
+    "12/2001": 0.0139,
+
+    "01/2002": 0.0153,
+    "02/2002": 0.0125,
+    "03/2002": 0.0137,
+    "04/2002": 0.0148,
+    "05/2002": 0.0141,
+    "06/2002": 0.0133,
+    "07/2002": 0.0154,
+    "08/2002": 0.0144,
+    "09/2002": 0.0138,
+    "10/2002": 0.0165,
+    "11/2002": 0.0154,
+    "12/2002": 0.0174,
+
+    "01/2003": 0.0197,
+    "02/2003": 0.0183,
+    "03/2003": 0.0178,
+    "04/2003": 0.0187,
+    "05/2003": 0.0197,
+    "06/2003": 0.0186,
+    "07/2003": 0.0208,
+    "08/2003": 0.0177,
+    "09/2003": 0.0168,
+    "10/2003": 0.0164,
+    "11/2003": 0.0134,
+    "12/2003": 0.0137,
+
+    "01/2004": 0.0127,
+    "02/2004": 0.0108,
+    "03/2004": 0.0138,
+    "04/2004": 0.0118,
+    "05/2004": 0.0123,
+    "06/2004": 0.0123,
+    "07/2004": 0.0129,
+    "08/2004": 0.0129,
+    "09/2004": 0.0125,
+    "10/2004": 0.0121,
+    "11/2004": 0.0125,
+    "12/2004": 0.0148,
+
+    "01/2005": 0.0138,
+    "02/2005": 0.0122,
+    "03/2005": 0.0153,
+    "04/2005": 0.0141,
+    "05/2005": 0.015,
+    "06/2005": 0.0159,
+    "07/2005": 0.0151,
+    "08/2005": 0.0166,
+    "09/2005": 0.015,
+    "10/2005": 0.0141,
+    "11/2005": 0.0138,
+    "12/2005": 0.0147,
+
+    "01/2006": 0.0143,
+    "02/2006": 0.0115,
+    "03/2006": 0.0142,
+    "04/2006": 0.0108,
+    "05/2006": 0.0128,
+    "06/2006": 0.0118,
+    "07/2006": 0.0117,
+    "08/2006": 0.0126,
+    "09/2006": 0.0106,
+    "10/2006": 0.0109,
+    "11/2006": 0.0102,
+    "12/2006": 0.0099,
+
+    "01/2007": 0.0108,
+    "02/2007": 0.0087,
+    "03/2007": 0.0105,
+    "04/2007": 0.0094,
+    "05/2007": 0.0103,
+    "06/2007": 0.0091,
+    "07/2007": 0.0097,
+    "08/2007": 0.0099,
+    "09/2007": 0.008,
+    "10/2007": 0.0093,
+    "11/2007": 0.0084,
+    "12/2007": 0.0084,
+
+    "01/2008": 0.0093,
+    "02/2008": 0.008,
+    "03/2008": 0.0084,
+    "04/2008": 0.009,
+    "05/2008": 0.0088,
+    "06/2008": 0.0096,
+    "07/2008": 0.0107,
+    "08/2008": 0.0102,
+    "09/2008": 0.011,
+    "10/2008": 0.0118,
+    "11/2008": 0.0102,
+    "12/2008": 0.0112,
+
+    "01/2009": 0.0105,
+    "02/2009": 0.0086,
+    "03/2009": 0.0097,
+    "04/2009": 0.0084,
+    "05/2009": 0.0077,
+    "06/2009": 0.0076,
+    "07/2009": 0.0079,
+    "08/2009": 0.0069,
+    "09/2009": 0.0069,
+    "10/2009": 0.0069,
+    "11/2009": 0.0066,
+    "12/2009": 0.0073,
+
+    "01/2010": 0.0066,
+    "02/2010": 0.0059,
+    "03/2010": 0.0076,
+    "04/2010": 0.0067,
+    "05/2010": 0.0075,
+    "06/2010": 0.0079,
+    "07/2010": 0.0086,
+    "08/2010": 0.0089,
+    "09/2010": 0.0085,
+    "10/2010": 0.0081,
+    "11/2010": 0.0081,
+    "12/2010": 0.0093,
+
+    "01/2011": 0.0086,
+    "02/2011": 0.0084,
+    "03/2011": 0.0092,
+    "04/2011": 0.0084,
+    "05/2011": 0.0099,
+    "06/2011": 0.0096,
+    "07/2011": 0.0097,
+    "08/2011": 0.0107,
+    "09/2011": 0.0094,
+    "10/2011": 0.0088,
+    "11/2011": 0.0086,
+    "12/2011": 0.0091,
+
+    "01/2012": 0.0089,
+    "02/2012": 0.0075,
+    "03/2012": 0.0082,
+    "04/2012": 0.0071,
+    "05/2012": 0.0074,
+    "06/2012": 0.0064,
+    "07/2012": 0.0068,
+    "08/2012": 0.0069,
+    "09/2012": 0.0054,
+    "10/2012": 0.0061,
+    "11/2012": 0.0055,
+    "12/2012": 0.0055,
+
+    "01/2013": 0.006,
+    "02/2013": 0.0049,
+    "03/2013": 0.0055,
+    "04/2013": 0.0061,
+    "05/2013": 0.006,
+    "06/2013": 0.0061,
+    "07/2013": 0.0072,
+    "08/2013": 0.0071,
+    "09/2013": 0.0071,
+    "10/2013": 0.0081,
+    "11/2013": 0.0072,
+    "12/2013": 0.0079,
+
+    "01/2014": 0.0085,
+    "02/2014": 0.0079,
+    "03/2014": 0.0077,
+    "04/2014": 0.0082,
+    "05/2014": 0.0087,
+    "06/2014": 0.0082,
+    "07/2014": 0.0095,
+    "08/2014": 0.0087,
+    "09/2014": 0.0091,
+    "10/2014": 0.0095,
+    "11/2014": 0.0084,
+    "12/2014": 0.0096,
+
+    "01/2015": 0.0094,
+    "02/2015": 0.0082,
+    "03/2015": 0.0104,
+    "04/2015": 0.0095,
+    "05/2015": 0.0099,
+    "06/2015": 0.0107,
+    "07/2015": 0.0118,
+    "08/2015": 0.0111,
+    "09/2015": 0.0111,
+    "10/2015": 0.0111,
+    "11/2015": 0.0106,
+    "12/2015": 0.0116,
+
+    "01/2016": 0.0106,
+    "02/2016": 0.01,
+    "03/2016": 0.0116,
+    "04/2016": 0.0106,
+    "05/2016": 0.0111,
+    "06/2016": 0.0116,
+    "07/2016": 0.0111,
+    "08/2016": 0.0122,
+    "09/2016": 0.0111,
+    "10/2016": 0.0105,
+    "11/2016": 0.0104,
+    "12/2016": 0.0112,
+
+    "01/2017": 0.0109,
+    "02/2017": 0.0087,
+    "03/2017": 0.0105,
+    "04/2017": 0.0079,
+    "05/2017": 0.0093,
+    "06/2017": 0.0081,
+    "07/2017": 0.008,
+    "08/2017": 0.008,
+    "09/2017": 0.0064,
+    "10/2017": 0.0064,
+    "11/2017": 0.0057,
+    "12/2017": 0.0054,
+
+    "01/2018": 0.0058,
+    "02/2018": 0.0047,
+    "03/2018": 0.0053,
+    "04/2018": 0.0052,
+    "05/2018": 0.0052,
+    "06/2018": 0.0052,
+    "07/2018": 0.0054,
+    "08/2018": 0.0057,
+    "09/2018": 0.0047,
+    "10/2018": 0.0054,
+    "11/2018": 0.0049,
+    "12/2018": 0.0049,
+
+    "01/2019": 0.0054,
+    "02/2019": 0.0049,
+    "03/2019": 0.0047,
+    "04/2019": 0.0052,
+    "05/2019": 0.0054,
+    "06/2019": 0.0047,
+    "07/2019": 0.0057,
+    "08/2019": 0.005,
+    "09/2019": 0.0046,
+    "10/2019": 0.0048,
+    "11/2019": 0.0038,
+    "12/2019": 0.0037,
+
+    "01/2020": 0.0038,
+    "02/2020": 0.0029,
+    "03/2020": 0.0034,
+    "04/2020": 0.0028,
+    "05/2020": 0.0024,
+    "06/2020": 0.0021,
+    "07/2020": 0.0019,
+    "08/2020": 0.0016,
+    "09/2020": 0.0016,
+    "10/2020": 0.0016,
+    "11/2020": 0.0015,
+    "12/2020": 0.0016,
+
+    "01/2021": 0.0015,
+    "02/2021": 0.0013,
+    "03/2021": 0.002,
+    "04/2021": 0.0021,
+    "05/2021": 0.0027,
+    "06/2021": 0.0031,
+    "07/2021": 0.0036,
+    "08/2021": 0.0043,
+    "09/2021": 0.0044,
+    "10/2021": 0.0049,
+    "11/2021": 0.0059,
+    "12/2021": 0.0077,
+
+    "01/2022": 0.0073,
+    "02/2022": 0.0076,
+    "03/2022": 0.0093,
+    "04/2022": 0.0083,
+    "05/2022": 0.0103,
+    "06/2022": 0.0102,
+    "07/2022": 0.0103,
+    "08/2022": 0.0117,
+    "09/2022": 0.0107,
+    "10/2022": 0.0102,
+    "11/2022": 0.0102,
+    "12/2022": 0.0112,
+
+    "01/2023": 0.0112,
+    "02/2023": 0.0092,
+    "03/2023": 0.0117,
+    "04/2023": 0.0092,
+    "05/2023": 0.0112,
+    "06/2023": 0.0107,
+    "07/2023": 0.0107,
+    "08/2023": 0.0114,
+    "09/2023": 0.0097,
+    "10/2023": 0.01,
+    "11/2023": 0.0092,
+    "12/2023": 0.0089,
+
+    "01/2024": 0.0097,
+    "02/2024": 0.008,
+    "03/2024": 0.0083,
+    "04/2024": 0.0089,
+    "05/2024": 0.0083,
+    "06/2024": 0.0079,
+    "07/2024": 0.0091,
+    "08/2024": 0.0087,
+    "09/2024": 0.0084,
+    "10/2024": 0.0093,
+    "11/2024": 0.0079,
+    "12/2024": 0.0093,
+
+    "01/2025": 0.0101,
+    "02/2025": 0.0099,
+    "03/2025": 0.0096,
+    "04/2025": 0.0106,
+    "05/2025": 0.0114,
+    "06/2025": 0.011,
+    "07/2025": 0.0128,
+  };
+
   function corrigirValorComIPCAE(
     dataInicio: string,
     dataFim: string,
@@ -1241,6 +1777,44 @@ const Calculadora = () => {
       const indice = inpcIndex[chave];
 
       if (indice !== undefined) {
+        valorCorrigido += valorCorrigido * indice;
+      }
+
+      mes++;
+      if (mes > 12) {
+        mes = 1;
+        ano++;
+      }
+    }
+
+    return parseFloat(valorCorrigido.toFixed(2));
+  }
+
+  function corrigirValorComIPCAEeSelic(
+    dataInicio: string,
+    dataFim: string,
+    valor: number
+  ): number {
+    const [diaIni, mesIni, anoIni] = dataInicio.split("/").map(Number);
+    const [dataIni, mesFim, anoFim] = dataFim.split("/").map(Number);
+
+    let mes = mesIni;
+    let ano = anoIni;
+    let dia = diaIni;
+
+    let valorCorrigido = valor;
+
+    while (ano < anoFim || (ano == anoFim && mes <= mesFim)) {
+      const chave = `${String(mes).padStart(2, "0")}/${ano}`;
+      let indice;
+
+      if (ano < 2021 || (ano === 2021 && mes <= 12 && dia <= 7)) {
+        indice = ipcaEMensal[chave];
+      } else {
+        indice = selicMensal[chave];
+      }
+
+      if (indice !== undefined && indice != 0) {
         valorCorrigido += valorCorrigido * indice;
       }
 
@@ -1546,7 +2120,7 @@ const Calculadora = () => {
               </label>
               <Select
                 onValueChange={(e) => setIndiceAtualizacaoMonetaria(e)}
-                defaultValue={"inpcIpca"}
+                defaultValue={"ipcaeSelic"}
                 value={indiceAtualizacaoMontaria}
               >
                 <SelectTrigger
@@ -1564,10 +2138,18 @@ const Calculadora = () => {
                   />
                 </SelectTrigger>
                 <SelectContent className="bg-white pointer">
+                  <SelectItem value="ipcaeSelic">
+                    IPCA-e / Selic EC 113/2021
+                  </SelectItem>
                   <SelectItem value="ipcae">IPCA-e</SelectItem>
                   <SelectItem value="inpc">INPC</SelectItem>
                 </SelectContent>
               </Select>
+              {indiceAtualizacaoMontaria == "ipcaeSelic" && (
+                <p className="text-xs text-gray-500 mt-1">
+                  IPCA-e até 07/12/2021 e Selic a partir de 08/12/2021
+                </p>
+              )}
             </div>
             <div className="flex flex-col md:flex-row cols-1 md:cols-2 gap-10 mt-4">
               <div className="">
